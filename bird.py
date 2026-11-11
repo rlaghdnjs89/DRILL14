@@ -51,3 +51,25 @@ def _build_frame_rects():
 
 
 FRAME_RECTS = _build_frame_rects()
+
+
+# 화면에 그릴 크기: 프레임 폭을 BIRD_SIZE_PIXEL 로 맞추고 세로는 원본 비율 유지
+DRAW_W = BIRD_SIZE_PIXEL
+DRAW_H = BIRD_SIZE_PIXEL * FRAME_H / FRAME_W
+
+
+class Bird:
+    image = None  # 10마리가 하나의 텍스처를 공유 (한 번만 로딩)
+
+    def __init__(self, x=400, y=400):
+        if Bird.image is None:
+            Bird.image = load_image('bird_animation.png')
+        self.x, self.y = x, y
+        self.frame = 0.0
+
+    def update(self):
+        pass
+
+    def draw(self):
+        left, bottom, w, h = FRAME_RECTS[int(self.frame)]
+        Bird.image.clip_draw(left, bottom, w, h, self.x, self.y, DRAW_W, DRAW_H)
