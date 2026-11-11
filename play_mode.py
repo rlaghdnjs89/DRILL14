@@ -3,6 +3,9 @@ import game_world
 import game_framework
 from boy import Boy
 from grass import Grass
+from bird import Bird
+
+BIRD_COUNT = 10
 
 boy = None
 
@@ -29,6 +32,10 @@ def init():
 
     grass = Grass()
     game_world.add_oject(grass, 0)
+
+    # 새떼: 10마리를 오브젝트 레이어에 등록 (game_world.update/render 가 일괄 처리)
+    for _ in range(BIRD_COUNT):
+        game_world.add_oject(Bird(), 1)
 
 
 def pause():
