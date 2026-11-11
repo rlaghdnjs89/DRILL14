@@ -75,7 +75,28 @@ class Bird:
         self.frame = (self.frame + FRAMES_PER_SECOND * dt) % FRAMES_PER_FLAP
         # 비행: 거리 = 속도 x 시간 (등속 운동)
         self.x += self.dir * self.speed * dt
+        self.turn_at_edge()
+
+    def turn_at_edge(self):
+        """화면 끝에 닿으면 반대로 방향을 바꾼다.
+
+        경계를 넘어간 만큼을 반대쪽으로 반사(x = 2*경계 - x)시켜
+        frame_time 이 큰 프레임에서도 이동 거리 손실 없이 정확히 되돌아온다.
+        """
+        min_x = DRAW_W / 2
+        max_x = get_canvas_width() - DRAW_W / 2
+        if self.x > max_x:
+            self.x = 2 * max_x - self.x
+            self.dir = -1
+        elif self.x < min_x:
+            self.x = 2 * min_x - self.x
+            self.dir = 1
 
     def draw(self):
         left, bottom, w, h = FRAME_RECTS[int(self.frame)]
-        Bird.image.clip_draw(left, bottom, w, h, self.x, self.y, DRAW_W, DRAW_H)
+        if self.dir == 1:
+            Bird.image.clip_draw(left, bottom, w, h, self.x, self.y, DRAW_W, DRAW_H)
+        else:
+            # 원본은 오른쪽을 바라보므로, 왼쪽으로 날 때는 좌우 반전
+            Bird.image.clip_composite_draw(left, bottom, w, h, 0, 'h',
+                                           self.x, self.y, DRAW_W, DRAW_H)
