@@ -21,3 +21,33 @@ BIRD_SIZE_PIXEL = BIRD_SIZE_M * PIXEL_PER_METER
 FLAPS_PER_SECOND = 3.0          # 1초에 날갯짓 3회
 FRAMES_PER_FLAP = 14            # 시트의 14프레임이 날갯짓 한 주기
 FRAMES_PER_SECOND = FLAPS_PER_SECOND * FRAMES_PER_FLAP
+
+# ---------------------------------------------------------------------------
+# 스프라이트 시트 (bird_animation.png : 918 x 506, 5열 x 3행, 14프레임)
+# ---------------------------------------------------------------------------
+SHEET_WIDTH, SHEET_HEIGHT = 918, 506
+SHEET_COLS, SHEET_ROWS = 5, 3
+CELL_WIDTH = SHEET_WIDTH / SHEET_COLS    # 183.6 (정수로 나누어 떨어지지 않음)
+CELL_HEIGHT = SHEET_HEIGHT / SHEET_ROWS  # 168.67
+FRAME_W, FRAME_H = 183, 168              # 실제로 잘라낼 크기
+
+
+def _build_frame_rects():
+    """프레임 번호 -> (left, bottom, width, height) 클리핑 사각형 목록.
+
+    시트는 위 행부터 왼쪽→오른쪽으로 재생되지만 pico2d 의 clip_draw 는
+    좌하단 원점이므로 bottom = 시트높이 - top - 높이 로 변환한다.
+    셀 폭이 183.6 px 이므로 left 는 누적 오차가 없도록 col * 183.6 을 내림한다.
+    (알파 채널 분석으로 14프레임 모두 잘림/이웃 프레임 섞임이 없음을 확인)
+    """
+    rects = []
+    for i in range(FRAMES_PER_FLAP):
+        row, col = divmod(i, SHEET_COLS)
+        left = int(col * CELL_WIDTH)
+        top = int(row * CELL_HEIGHT)
+        bottom = SHEET_HEIGHT - top - FRAME_H
+        rects.append((left, bottom, FRAME_W, FRAME_H))
+    return rects
+
+
+FRAME_RECTS = _build_frame_rects()
