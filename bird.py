@@ -68,7 +68,9 @@ class Bird:
         self.frame = 0.0
 
     def update(self):
-        pass
+        dt = game_framework.frame_time
+        # 날갯짓: 초당 FRAMES_PER_SECOND 프레임만큼 진행 (FPS 와 무관하게 3 Hz 유지)
+        self.frame = (self.frame + FRAMES_PER_SECOND * dt) % FRAMES_PER_FLAP
 
     def draw(self):
         left, bottom, w, h = FRAME_RECTS[int(self.frame)]
