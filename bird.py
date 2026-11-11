@@ -66,11 +66,15 @@ class Bird:
             Bird.image = load_image('bird_animation.png')
         self.x, self.y = x, y
         self.frame = 0.0
+        self.dir = 1                 # 1: 오른쪽, -1: 왼쪽
+        self.speed = FLY_SPEED_PPS   # px/s
 
     def update(self):
         dt = game_framework.frame_time
         # 날갯짓: 초당 FRAMES_PER_SECOND 프레임만큼 진행 (FPS 와 무관하게 3 Hz 유지)
         self.frame = (self.frame + FRAMES_PER_SECOND * dt) % FRAMES_PER_FLAP
+        # 비행: 거리 = 속도 x 시간 (등속 운동)
+        self.x += self.dir * self.speed * dt
 
     def draw(self):
         left, bottom, w, h = FRAME_RECTS[int(self.frame)]
