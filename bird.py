@@ -1,4 +1,5 @@
 import math
+import random
 
 from pico2d import *
 
@@ -30,6 +31,12 @@ FRAMES_PER_SECOND = FLAPS_PER_SECOND * FRAMES_PER_FLAP
 BOB_AMPLITUDE_M = 0.1                       # 위아래 10 cm
 BOB_AMPLITUDE_PIXEL = BOB_AMPLITUDE_M * PIXEL_PER_METER
 DOWNSTROKE_START_FRAME = 3                  # 몸이 가장 낮은 지점
+
+# 개체별 편차 및 비행 영역
+SPEED_VARIATION = 0.2    # 비행 속도 ±20% (24 ~ 36 km/h)
+FLAP_VARIATION = 0.15    # 날갯짓 빈도 ±15% (2.55 ~ 3.45 Hz)
+SKY_MIN_RATIO = 0.45     # 비행 고도 하한: 화면 높이의 45% (소년/지면과 겹치지 않게)
+SKY_MAX_RATIO = 0.92     # 비행 고도 상한: 화면 높이의 92%
 
 # ---------------------------------------------------------------------------
 # 스프라이트 시트 (bird_animation.png : 918 x 506, 5열 x 3행, 14프레임)
@@ -70,18 +77,28 @@ DRAW_H = BIRD_SIZE_PIXEL * FRAME_H / FRAME_W
 class Bird:
     image = None  # 10마리가 하나의 텍스처를 공유 (한 번만 로딩)
 
-    def __init__(self, x=400, y=400):
+    def __init__(self, x=None, y=None):
         if Bird.image is None:
             Bird.image = load_image('bird_animation.png')
-        self.x, self.y = x, y
-        self.frame = 0.0
-        self.dir = 1                 # 1: 오른쪽, -1: 왼쪽
-        self.speed = FLY_SPEED_PPS   # px/s
+
+        canvas_w, canvas_h = get_canvas_width(), get_canvas_height()
+        # 위치: 지정하지 않으면 하늘 영역(화면 높이 45%~92%) 안에서 무작위
+        self.x = x if x is not None else random.uniform(DRAW_W / 2, canvas_w - DRAW_W / 2)
+        self.y = y if y is not None else random.uniform(canvas_h * SKY_MIN_RATIO,
+                                                        canvas_h * SKY_MAX_RATIO)
+        self.dir = random.choice((-1, 1))  # 1: 오른쪽, -1: 왼쪽
+
+        # 개체별 편차: 같은 종이라도 속도와 날갯짓 빈도가 조금씩 다르다
+        self.speed = FLY_SPEED_PPS * random.uniform(1 - SPEED_VARIATION, 1 + SPEED_VARIATION)
+        self.frames_per_second = FRAMES_PER_SECOND * random.uniform(1 - FLAP_VARIATION,
+                                                                    1 + FLAP_VARIATION)
+        # 시작 위상을 흩뜨려 10마리가 동시에 똑같이 날갯짓하지 않게 한다
+        self.frame = random.uniform(0, FRAMES_PER_FLAP)
 
     def update(self):
         dt = game_framework.frame_time
-        # 날갯짓: 초당 FRAMES_PER_SECOND 프레임만큼 진행 (FPS 와 무관하게 3 Hz 유지)
-        self.frame = (self.frame + FRAMES_PER_SECOND * dt) % FRAMES_PER_FLAP
+        # 날갯짓: 초당 frames_per_second 프레임만큼 진행 (FPS 와 무관하게 약 3 Hz 유지)
+        self.frame = (self.frame + self.frames_per_second * dt) % FRAMES_PER_FLAP
         # 비행: 거리 = 속도 x 시간 (등속 운동)
         self.x += self.dir * self.speed * dt
         self.turn_at_edge()
