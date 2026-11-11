@@ -1,3 +1,5 @@
+import math
+
 from pico2d import *
 
 import game_framework
@@ -21,6 +23,13 @@ BIRD_SIZE_PIXEL = BIRD_SIZE_M * PIXEL_PER_METER
 FLAPS_PER_SECOND = 3.0          # 1초에 날갯짓 3회
 FRAMES_PER_FLAP = 14            # 시트의 14프레임이 날갯짓 한 주기
 FRAMES_PER_SECOND = FLAPS_PER_SECOND * FRAMES_PER_FLAP
+
+# 날갯짓에 따른 몸의 상하 흔들림
+# 시트 프레임 3~9 : 다운스트로크(날개를 아래로 내려침) -> 양력으로 몸이 올라감
+# 시트 프레임 10~13, 0~2 : 업스트로크(날개를 들어 올림) -> 몸이 내려감
+BOB_AMPLITUDE_M = 0.1                       # 위아래 10 cm
+BOB_AMPLITUDE_PIXEL = BOB_AMPLITUDE_M * PIXEL_PER_METER
+DOWNSTROKE_START_FRAME = 3                  # 몸이 가장 낮은 지점
 
 # ---------------------------------------------------------------------------
 # 스프라이트 시트 (bird_animation.png : 918 x 506, 5열 x 3행, 14프레임)
@@ -94,9 +103,21 @@ class Bird:
 
     def draw(self):
         left, bottom, w, h = FRAME_RECTS[int(self.frame)]
+        y = self.y + self.bob_offset()
         if self.dir == 1:
-            Bird.image.clip_draw(left, bottom, w, h, self.x, self.y, DRAW_W, DRAW_H)
+            Bird.image.clip_draw(left, bottom, w, h, self.x, y, DRAW_W, DRAW_H)
         else:
             # 원본은 오른쪽을 바라보므로, 왼쪽으로 날 때는 좌우 반전
             Bird.image.clip_composite_draw(left, bottom, w, h, 0, 'h',
-                                           self.x, self.y, DRAW_W, DRAW_H)
+                                           self.x, y, DRAW_W, DRAW_H)
+
+    def bob_offset(self):
+        """날갯짓 위상에 맞춘 몸의 상하 오프셋(px).
+
+        위상 = 2π * (frame - 다운스트로크 시작) / 14
+        -cos 를 쓰면 다운스트로크 시작(3)에서 최저, 7프레임 뒤(10)에서 최고가 되어
+        '내려칠 때 오르고, 들어 올릴 때 내려가는' 실제 날갯짓 양력 변화와 일치한다.
+        실수 frame 을 그대로 쓰므로 프레임 사이에서도 부드럽게 보간된다.
+        """
+        phase = 2 * math.pi * (self.frame - DOWNSTROKE_START_FRAME) / FRAMES_PER_FLAP
+        return -BOB_AMPLITUDE_PIXEL * math.cos(phase)
